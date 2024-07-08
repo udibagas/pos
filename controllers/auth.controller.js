@@ -1,25 +1,17 @@
 const { compare } = require("bcryptjs");
 const { User } = require("../models");
 const { sign } = require("jsonwebtoken");
+const UnauthenticatedException = require("../exceptions/UnauthenticatedException");
+const { SECRET_KEY } = process.env;
 
-exports.login = async (req, res, next) => {
+exports.login = async (req, res) => {
   const { email, password } = req.body;
-  try {
-    const user = User.findOne({
-      where: {
-        email,
-      },
-    });
+  const user = await User.scope("withPassword").findOneOrFailed({
+    where: { email },
+  });
 
-    if (user && (await compare(password, user.password))) {
-      const token = sign(user.toJSON(), SECRET_KEY);
-      return res.json({ user, token });
-    }
-
-    throw new Error("Username atau password salah");
-  } catch (err) {
-    next(err.message);
-  }
+  const authenticated = await compare(password, user.password);
+  if (!authenticated) throw new UnauthenticatedException();
+  const token = sign(user.toJSON(), SECRET_KEY);
+  res.status(200).json({ user, token });
 };
-
-exports.logout = (req, res) => {};

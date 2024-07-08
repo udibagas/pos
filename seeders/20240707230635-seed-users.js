@@ -11,8 +11,6 @@ module.exports = {
         email: "admin@mail.com",
         password: hashSync("rahasia"),
         role: "ADMIN",
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
     ]);
   },

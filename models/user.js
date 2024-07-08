@@ -1,4 +1,5 @@
 "use strict";
+const { hashSync } = require("bcryptjs");
 const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
@@ -33,14 +34,13 @@ module.exports = (sequelize, DataTypes) => {
       },
       password: {
         type: DataTypes.STRING,
-        allowNull: false,
+        set(value) {
+          if (value) {
+            this.setDataValue("password", hashSync(value));
+          }
+        },
         validate: {
-          notNull: { msg: "Password harus diisi" },
           notEmpty: { msg: "Password harus diisi" },
-          len: {
-            args: [8, 20],
-            msg: "Minimal password 8 karakter",
-          },
         },
       },
       role: {
@@ -59,8 +59,23 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: "User",
+      timestamps: false,
+      defaultScope: {
+        attributes: {
+          exclude: ["password"],
+        },
+      },
+      scopes: {
+        withPassword: {
+          attributes: ["id", "name", "email", "password", "role"],
+        },
+      },
     }
   );
+
+  User.afterSave((instance) => {
+    delete instance.dataValues.password;
+  });
 
   return User;
 };
